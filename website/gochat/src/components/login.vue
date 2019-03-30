@@ -36,8 +36,8 @@ export default {
                 request({
                     url: 'http://localhost:5000/join',
                     data: {
-                        username: this.username,
-                        roomname: this.roomName
+                        username: this.username.trim(),
+                        roomname: this.roomName.trim()
                     },
                     method: "post"
                 }).then(res => {

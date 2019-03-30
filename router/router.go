@@ -17,48 +17,47 @@ var UpGrader = websocket.Upgrader{
 	},
 }
 
-var UserTable = make(model.Users)
-
 func Chat(c *gin.Context) {
+	c.Status(417)
 	token := c.Param("token")
-	fmt.Println(token)
+	info, err := model.AuthToken(token)
+	if err != nil {
+		return
+	}
+
 	conn, err := UpGrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Println("[Conn]: ", err.Error())
 		return
 	}
 	defer conn.Close()
-	_, msg, err := conn.ReadMessage()
-	session, err := model.ParseSession(msg)
+
+	// 新建用户，使用id，和用户名，上面通过token验证，即可
+	user := model.NewUser(info.Id, info.Username, conn)
 	if err != nil {
-		return
-	}
-	user := model.NewUser(session.Id, session.Username)
-	err = user.Connect(conn)
-	if err != nil {
-		log.Println(err.Error())
 		return
 	}
 
-	err = UserTable.Add(user)
+	err = model.UserGroupTable.JoinGroup(info.Roomname, user)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(err)
 		return
 	}
 
-	err = UserTable.SendMsg([]byte(fmt.Sprintf(`{"code": "999", "user": "%s"}`, user.Name)), websocket.TextMessage)
+	// 提醒组内用户用户上线
+	err = model.UserConnect(user, true)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("UserConnect error.")
 		return
 	}
 
 	for {
 		mt, msg, err := conn.ReadMessage()
 		if err != nil {
-			if err = UserTable.Disconnect(user); err != nil {
+			if err = model.UserGroupTable.Disconnect(info.Roomname, user); err != nil {
 				fmt.Println("用户下线失败：", err.Error())
 			}
-			err = UserTable.SendMsg([]byte("用户离线提醒！"), websocket.TextMessage)
+			err = model.UserConnect(user, false)
 			log.Printf("用户 %s Id: %s 下线", user.Name, user.Id)
 			break
 		}
@@ -73,7 +72,7 @@ func Chat(c *gin.Context) {
 			log.Println("ToJson Error")
 			continue
 		}
-		UserTable.SendMsg(msg, mt)
+		user.Group.SendMsg(msg, mt)
 	}
 }
 
@@ -89,7 +88,7 @@ func Join(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println(username)
+
 	id := model.NewId(username, roomname)
 	authInfo := model.NewInfo(id, username, roomname)
 	err := model.SetToken(authInfo)
@@ -115,10 +114,10 @@ func Join(c *gin.Context) {
 
 func Users(c *gin.Context) {
 	roomName := c.PostForm("rname")
-	fmt.Println(roomName, UserTable)
+	fmt.Println(roomName, model.UserGroupTable)
 	c.JSON(http.StatusOK, gin.H{
 		"code": 1000,
-		"data": UserTable,
+		"data": model.UserGroupTable,
 		"msg":  "",
 	})
 }

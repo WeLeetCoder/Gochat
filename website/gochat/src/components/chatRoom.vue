@@ -1,15 +1,22 @@
 <template>
     <div class="room-container">
         <section class="room-header">
-            {{ courChat.name ? courChat.name : 'Username：' + courUser.Username}} - GoChat
+            <Icon type="ios-chatbubbles" size="24" v-if="online"/>
+            <Icon type="ios-chatbubbles-outline" size="24" v-else/>
+            <span style="font-size: 1.4rem;">
+                {{ courUser.Roomname }}
+            </span> -
+            <span style="font-size: 1.4rem;">
+                {{ courUser.Username }}
+            </span>
+            - GoChat
         </section>
         <section class="room-body">
             <div class="room-chat-list">
                 <ul>
                     <li class="chat-list-item" v-for="(chatList, index) in courUser.chatLists" :key="index" @click="selectSession(chatList)">
                         <div class="chat-list-icon-warp">
-                            <div class="chat-picture">
-                            </div>
+                            <div class="chat-picture"></div>
                         </div>
                         <div class="chat-list-name">
                             {{ chatList.name }}
@@ -20,39 +27,33 @@
             <div class="room-chat-msg" >
                 <div class="room-chat-msg-wrap" v-if="courChat.name">
                     <div class="chat-msg-display" ref="msgDisplay">
-                        <div v-for="(msgList, index) in msgTables" class="msg" :class="msgList.Sender == courUser.Id ? 'msg-me':'msg-other'" :key="index">
-
-                            <div class="user-icon" v-if="msgList.Sender != courUser.Id">
-                                <div class="chat-picture">
+                        <div class="msg-item" v-for="(msgList, index) in msgTables"  :key="index" @contextmenu="usermenu" v-if="msgList.Content">
+                            <div class="sender">
+                                <div class="sender-picture"></div>
+                            </div>
+                            <div class="msg" >
+                                <div class="msg-senderDetail">
+                                    <span class="sender-name">
+                                        {{ msgList.SenderName }}
+                                    </span>
+                                    <span class="sender-time">
+                                        {{ msgList.Time }}
+                                    </span>
+                                </div>
+                                <div class="msg-content" v-html="msgList.Content">
+                                    <!--{{ msgList.Content }}-->
                                 </div>
                             </div>
-                            <div class="msg-content" v-else>
-                                {{ msgList.Content}}
-                            </div>
-
-                            <div class="user-icon" v-if="msgList.Sender == courUser.Id">
-                                <div class="chat-picture">
-                                </div>
-                            </div>
-                            <div class="msg-content" v-else>
-                                {{ msgList.Content}}
-                            </div>
-
                         </div>
-                        <!-- <div class="msg msg-me">
-                            <div class="msg-content">
-                                你是猴子请来的逗比吗？
-                            </div>
-                            <div class="user-icon">
-                                <div class="chat-picture">
-                                </div>
-                            </div>
-                        </div> -->
+                        <div v-else class="msg-item">
+                            <span class="sys-tip">{{msgList.user}} 上线啦！</span>
+                        </div>
                     </div>
                     <div class="chat-msg-input">
                         <!-- 输入区域 -->
                         <!-- <pre class="msg-input" contenteditable="true"></pre> -->
-                        <textarea  v-model="userEnterMsg" class="msg-input" placeholder="试试发送消息吧！" @keyup.enter="send"></textarea>
+                        <!--@keyup.enter="send"-->
+                        <textarea  v-model="input" class="msg-input" placeholder="试试发送消息吧！" rows="5" ref="input" @keydown.enter="send"></textarea>
                         <div class="msg-sender">
                             <!-- 发送区域 -->
                             <Button type="info" @click="send()">发送</Button>
@@ -78,10 +79,12 @@ export default {
               Username: "zhongqi",
               Token: "abcdefg",
             },
-            userEnterMsg: '',
+            online: false,
+            input: '',
             courChat: {
                 name: ' '
             },
+            ctrl: false,
             msgLists: [],
             chatLists: [
               {
@@ -91,17 +94,26 @@ export default {
         }
     },
     methods: {
-        send() {
-            if (!this.userEnterMsg) {
+        send(e) {
+            if (this.ctrl) {
+                this.input += '\n';
+                return
+            }
+            if (!this.input.trim()) {
               return ;
             }
+            if (e !== undefined) {
+                e.preventDefault();
+            }
             let msg = {
-                content: this.userEnterMsg
+                content: `<pre>${this.input}</pre>`.replace('\n', '<br>')
             };
-            this.userEnterMsg = '';
+            this.input = '';
+
             try {
               if (!this.wsConn) {
-                console.log("ws connect failed, send failed");
+                  console.log("ws connect failed, send failed");
+
                 return
               }
               this.wsConn.send(JSON.stringify(msg));
@@ -111,52 +123,84 @@ export default {
         },
         selectSession(session) {
             this.courChat = session
+        },
+        usermenu(e) {
+            e.preventDefault();
+            console.log(e)
         }
     },
     computed: {
         msgTables() {
             if (this.$refs.msgDisplay) {
-                let msgDisplay = this.$refs.msgDisplay;
-                let scrollHeight = msgDisplay.scrollHeight;
-                msgDisplay.scrollTop = scrollHeight;
+                this.$nextTick(() => {
+                    let msgDisplay = this.$refs.msgDisplay;
+                    let scrollHeight = msgDisplay.scrollHeight;
+                    msgDisplay.scrollTop = scrollHeight;
+                })
             }
-
             return this.msgLists
-        }
+        },
     },
     mounted() {
         let info = getInfo();
         if (info) {
           this.courUser = info;
         }
-        const wsUrl = 'ws://localhost:5000/chat/';
-        let wsConn = new WebSocket(wsUrl + this.courUser.Token);
+        try {
+          const wsUrl = 'ws://localhost:5000/chat/';
+          let wsConn = new WebSocket(wsUrl + this.courUser.Token);
 
-        wsConn.addEventListener('open', (e) => {
+          wsConn.addEventListener('open', (e) => {
             this.wsConn = wsConn;
-            wsConn.send("");
+            // wsConn.send("login");
+            this.online = true;
             console.log('ws connect opened');
-        }, false);
+          }, false);
 
-        wsConn.addEventListener('message', (e) => {
-             let response = JSON.parse(e.data);
-             this.msgLists.push(response);
-             console.log("receive msg:", response, );
-        }, false);
+          wsConn.addEventListener('message', (e) => {
+            let response = JSON.parse(e.data);
+            this.msgLists.push(response);
+            console.log("receive msg:", response, );
+          }, false);
 
-        wsConn.addEventListener('error', (e) => {
+          wsConn.addEventListener('error', (e) => {
+            this.online = false;
             console.log('ws connect error');
-        }, false);
+          }, false);
 
-        wsConn.addEventListener('close', (e) => {
+          wsConn.addEventListener('close', (e) => {
+            this.online = false;
             console.log('ws connect is closed');
-        }, false);
+          }, false);
+        }catch (e) {
+          this.online = false;
+        }
+        this.$refs.input.addEventListener('keyup', (e) => {
+            if (e.key === 'Control') {
+                this.ctrl = false;
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+            }
+        });
+
+        this.$refs.input.addEventListener('keydown', (e) => {
+            if (e.key === 'Control') {
+                this.ctrl = true;
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                this.input += '\t';
+            }
+        });
     }
 }
 </script>
 <style>
 :root {
     --header-height: 48px;
+    --icon-size: 40px;
+    font-size: 14px;
 }
 html {
     height: 100%;
@@ -245,8 +289,7 @@ body {
 .chat-msg-display {
     width: 100%;
     height: 70%;
-    padding: 20px;
-    padding-bottom: 0;
+    padding: 0 10px;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -263,7 +306,7 @@ body {
     width: 100%;
     outline: none;
     border: 0;
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     overflow-y: auto;
     overflow-x: hidden;
     white-space: pre-wrap;
@@ -279,31 +322,57 @@ body {
     justify-content: flex-end;
 }
 .msg {
+    /*margin-bottom: 20px;*/
+}
+.msg-item {
     display: flex;
-    margin-bottom: 20px;
-    align-items: flex-start;
+    padding: 20px 0;
+    border-bottom: solid 1px rgba(255, 255, 255, .05);
 }
-.msg-me {
-    justify-content: flex-end;
+.msg-item:last-child {
+    border-bottom: none;
+
 }
-.user-icon:nth-child(even) {
-    margin-left: 10px;
+.sender {
+    padding-right: 10px;
 }
-.user-icon:nth-child(odd) {
-    margin-right: 10px;
+.sender-picture {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    background: #666;
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    border-radius: 50%;
 }
-.msg-other {
-    justify-content: flex-start;
+.msg-senderDetail {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+.sender-time {
+    font-size: .9rem;
+    letter-spacing: 1px;
+    color: hsla(0,0%,100%,.2);
+}
+.sender-name {
+    font-size: 1.1rem;
+    letter-spacing: 0;
+    margin-right: 2px;
+
 }
 .msg-content {
-    min-height: 48px;
-    background: #666;
     border-radius: 4px;
-    padding: 10px;
-    max-width: 70%;
     display: flex;
     align-items: center;
-    font-size: 14px;
+    font-size: 1.1rem;
+    line-height: 2rem;
+}
+.sys-tip {
+    margin: 0 auto;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, .2);
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
 }
 @media screen and (max-width: 480px) {
     .room-container {
@@ -323,14 +392,20 @@ body {
         height: 88%;
     }
     .chat-msg-input {
+        display: flex;
+        align-items: center;
         flex-direction: row;
         height: 12%;
         position: fixed;
         bottom: 0;
+        padding: 10px;
+        justify-content: space-between;
     }
     .msg-input {
-        height: 48px;
-        width: 80%;
+        /*height: 48px;*/
+        margin-bottom: 0;
+        margin-right: 10px;
+        min-height: 24px;
     }
 }
 </style>

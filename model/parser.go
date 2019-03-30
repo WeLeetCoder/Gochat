@@ -11,7 +11,7 @@ type Message struct {
 	SenderName string
 	Sender     string
 	Content    string
-	Time       int64
+	Time       string
 }
 
 func (m Message) ToJson() ([]byte, error) {
@@ -31,7 +31,7 @@ func ParseSession(msg []byte) (s *Session, err error) {
 
 func ParseMsg(m []byte) (msg *Message, err error) {
 	msg = new(Message)
-	msg.Time = time.Now().Unix()
+	msg.Time = time.Now().Format("2006/01/02 15:04:05")
 	err = json.Unmarshal(m, msg)
 	return
 }

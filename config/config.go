@@ -1,14 +1,14 @@
 package config
 
-var MaxUserNum = 30
-var MaxChatRoom = 10
-var MaxTokenTime = 300 // minute
-var ServerPort = ":5000"
-var MongoHost = "mongodb://localhost:27017"
-var MongoDatabase = "GoChat"
-var MongoTokenTab = "token"
-var Mode = 0
-var TokenSecureCode = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-~|<>?/';:"
+const MaxUserNum = 30
+const MaxChatRoom = 10
+const MaxTokenTime = 300 // minute
+const ServerPort = ":5000"
+const MongoHost = "mongodb://localhost:27017"
+const MongoDatabase = "GoChat"
+const MongoTokenTab = "token"
+const Mode = 0
+const TokenSecureCode = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-~|<>?/';:"
 
 const (
 	DevMode = iota

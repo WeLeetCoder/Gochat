@@ -21,13 +21,12 @@ type AuthInfo struct {
 
 func NewInfo(id, username, roomname string) *AuthInfo {
 	token := NewToken()
-	fmt.Println(token)
 	return &AuthInfo{
 		Id:       id,
 		Username: username,
 		Roomname: roomname,
 		Token:    token,
-		Expires:  time.Now().Add(30 * time.Minute),
+		Expires:  time.Now().Add(config.MaxTokenTime * time.Minute),
 	}
 }
 
@@ -46,9 +45,17 @@ func NewToken() string {
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
-	fmt.Println(string(b))
 	nowTime := strconv.Itoa(int(now))
 	ctx := md5.New()
 	ctx.Write([]byte(nowTime + string(b)))
 	return fmt.Sprintf("%x", ctx.Sum(nil))
+}
+
+func AuthToken(token string) (*AuthInfo, error) {
+	authInfo, err := GetToken(token)
+	if err != nil || time.Now().Sub(authInfo.Expires) > 0 {
+		return nil, fmt.Errorf("Auth Error. ")
+	}
+	// 如果找到了token，但是token过期了(现在时间 - 过期时间) 大于0，即过期
+	return authInfo, nil
 }
