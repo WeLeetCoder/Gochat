@@ -2,9 +2,11 @@ package router
 
 import (
 	"fmt"
+	"gochat/config"
 	"gochat/model"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -38,6 +40,7 @@ func Chat(c *gin.Context) {
 		return
 	}
 
+	// 将用户加入相应的组
 	err = model.UserGroupTable.JoinGroup(info.Roomname, user)
 	if err != nil {
 		log.Println(err)
@@ -54,25 +57,32 @@ func Chat(c *gin.Context) {
 	for {
 		mt, msg, err := conn.ReadMessage()
 		if err != nil {
+
+			// 用户断开了连接，把用户从用户表中断开连接
 			if err = model.UserGroupTable.Disconnect(info.Roomname, user); err != nil {
 				fmt.Println("用户下线失败：", err.Error())
 			}
+
+			// 提醒组内用户下线
 			err = model.UserConnect(user, false)
 			log.Printf("用户 %s Id: %s 下线", user.Name, user.Id)
 			break
 		}
+
+		// 解析用户发送的数据，
 		message, err := model.ParseMsg(msg)
 		if err != nil {
 			continue
 		}
-		message.Sender = user.Id
-		message.SenderName = user.Name
-		msg, err = message.ToJson()
+
+		msg, err = message.ToJson(user)
 		if err != nil {
 			log.Println("ToJson Error")
 			continue
 		}
-		user.Group.SendMsg(msg, mt)
+
+		// 在用户组中发送消息
+		user.SendGroup(msg, mt)
 	}
 }
 
@@ -113,20 +123,62 @@ func Join(c *gin.Context) {
 }
 
 func Users(c *gin.Context) {
+	c.Header("Access-Control-Allow-Origin", "*")
 	roomName := c.PostForm("rname")
-	fmt.Println(roomName, model.UserGroupTable)
+	token := c.PostForm("token")
+
+	fmt.Println(roomName, token)
+	bytes, err := model.UserGroupTable.Group(roomName)
+	if err != nil {
+		fmt.Println(err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": 1006,
+			"data": bytes,
+			"msg":  err,
+		})
+		return
+	}
+	bytes.GenerateUList()
 	c.JSON(http.StatusOK, gin.H{
 		"code": 1000,
-		"data": model.UserGroupTable,
-		"msg":  "",
+		"data": bytes,
+		"msg":  err,
 	})
 }
 
 func Rooms(c *gin.Context) {
-
+	fmt.Println(model.UserGroupTable)
+	c.JSON(http.StatusOK, gin.H{
+		"code": 1000,
+		"data": model.UserGroupTable,
+		"msg":  "this is group table.",
+	})
 }
 
 func Broadcast(c *gin.Context) {
+	token := c.PostForm("token")
+	_, err := model.AuthToken(token)
+	if err != nil {
+		return
+	}
 	msg := c.PostForm("msg")
-	fmt.Println(msg)
+	newMsg, err := model.NewMsg(config.BroadcastName, "System", msg, time.Now())
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": 1006,
+			"data": "",
+			"msg":  "Broadcast failed.",
+		})
+		return
+	}
+
+	for _, user := range model.UserGroupTable {
+		user.SendMsg(newMsg, websocket.TextMessage)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 1000,
+		"data": "",
+		"msg":  "Broadcast successful.",
+	})
 }

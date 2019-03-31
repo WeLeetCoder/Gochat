@@ -12,10 +12,11 @@ export default {
 
 <style>
   :root {
-
+      --font: Consolas,Monaco,Andale Mono,Ubuntu Mono,monospace, "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
   }
   html {
     font-size: 12px;
+    font-family: Consolas,Monaco,Andale Mono,Ubuntu Mono,monospace, "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
   }
   a, button, div, input, select, span, strong, textarea {
     outline: 0;
@@ -25,20 +26,20 @@ export default {
     margin: 0;
     padding: 0;
   }
-  pre {
+  pre, textarea{
     white-space: pre-wrap;
     word-break: break-word;
-    font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",Arial,sans-serif;
+    font-family: var(--font);
   }
   ::-webkit-scrollbar {
     width: 8px;
   }
   ::-webkit-scrollbar-thumb {
     border-radius: 4px;
-    background: #2f3136;
+    background: rgba(179, 179, 179, 0.2);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: rgba(179, 179, 179, 0.5);
   }
 
   ::-webkit-scrollbar-track {

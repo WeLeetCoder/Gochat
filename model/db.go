@@ -34,26 +34,6 @@ func GetToken(token string) (info *AuthInfo, err error) {
 	return
 }
 
-//func SetToken(info *AuthInfo) (token *Token, err error) {
-//	tokenTable := MongoDB.C("token")
-//	tokenStr := RandNewId(time.Now().String())
-//	token = &Token{
-//		Id:       NewId(info.Username, info.RoomName),
-//		Username: info.Username,
-//		RoomName: info.RoomName,
-//		Expires:  time.Now().Add(30 * time.Minute),
-//	}
-//	token.Token = tokenStr
-//	err = tokenTable.Insert(token)
-//	return
-//}
-//
-//func GetToken(tokenStr string) (token *Token, err error) {
-//	tokenTable := MongoDB.C("token")
-//	err = tokenTable.Find(bson.M{"token": tokenStr}).One(&token)
-//	return
-//}
-
 func init() {
 	initMongo()
 }
