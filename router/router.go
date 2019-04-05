@@ -1,9 +1,9 @@
 package router
 
 import (
+	"Gochat/config"
+	"Gochat/model"
 	"fmt"
-	"gochat/config"
-	"gochat/model"
 	"log"
 	"net/http"
 	"time"

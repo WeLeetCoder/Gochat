@@ -1,8 +1,8 @@
 package main
 
 import (
+	"Gochat/model"
 	"fmt"
-	"gochat/model"
 )
 
 func main() {

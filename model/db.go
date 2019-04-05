@@ -1,7 +1,7 @@
 package model
 
 import (
-	"gochat/config"
+	"Gochat/config"
 	"log"
 	"os"
 

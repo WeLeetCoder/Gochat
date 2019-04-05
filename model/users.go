@@ -1,9 +1,9 @@
 package model
 
 import (
+	"Gochat/config"
 	"encoding/json"
 	"fmt"
-	"gochat/config"
 
 	"github.com/gorilla/websocket"
 )

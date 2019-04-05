@@ -1,9 +1,9 @@
 package model
 
 import (
+	"Gochat/config"
 	"crypto/md5"
 	"fmt"
-	"gochat/config"
 	"math/rand"
 	"strconv"
 	"time"

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"gochat/config"
-	"gochat/router"
+	"Gochat/config"
+	"Gochat/router"
 	"log"
 	"net/http"
 
